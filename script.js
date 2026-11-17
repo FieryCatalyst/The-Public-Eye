@@ -96,7 +96,7 @@ const articles = [
 ];
 
 const $ = (selector) => document.querySelector(selector);
-const hero = $("#hero"), grid = $("#articleGrid"), articleView = $("#articleView"), homeView = $("#homeView");
+const hero = $("#hero"), grid = $("#articleGrid"), articleView = $("#articleView"), homeView = $("#homeView"), progressBar = $("#progressBar");
 const categoryLabel = (article) => article.category.toUpperCase();
 function imageTag(article, className=""){ return `<img class="${className}" src="${article.image}" alt="${article.title}" loading="lazy">`; }
 function cardTemplate(article){ return `<article class="card"><a href="#article=${article.id}"><div class="card-media">${imageTag(article)}</div><div class="card-body"><span class="eyebrow">${categoryLabel(article)}</span><h3>${article.title}</h3><p>${article.deck}</p><span class="card-link">Read more&nbsp; →</span></div></a></article>`; }
@@ -106,7 +106,18 @@ function relatedTemplate(article){ return `<a class="related-card" href="#articl
 function renderArticle(id){ const article=articles.find(a=>a.id===id); if(!article) return showHome(); homeView.hidden=true; articleView.hidden=false; document.title=`${article.title} | The Public Eye`; $("#articleIndex").textContent=`Story ${String(articles.indexOf(article)+1).padStart(2,"0")} / 06`; $("#articleContent").innerHTML=`<header class="article-header"><span class="eyebrow">${categoryLabel(article)} &nbsp;·&nbsp; 17 November 2026</span><h1>${article.title}</h1><p class="dek">${article.deck}</p></header><div class="article-feature">${imageTag(article)}</div><div class="article-body">${article.paragraphs.map(p=>`<p>${p}</p>`).join("")}</div><section class="related"><h2>Continue reading</h2><div class="related-grid">${articles.filter(a=>a.id!==article.id).slice(0,3).map(relatedTemplate).join("")}</div></section>`; window.scrollTo(0,0); updateProgress(); }
 function showHome(){ articleView.hidden=true; homeView.hidden=false; document.title="The Public Eye | Stories That Matter"; updateProgress(); }
 function route(){ const hash=location.hash; const articleMatch=hash.match(/^#article=(.+)$/); const categoryMatch=hash.match(/^#category=(.+)$/); if(articleMatch){ renderArticle(articleMatch[1]); return; } showHome(); if(categoryMatch){ const value=categoryMatch[1]; $("#categoryFilter").value=["gender","education","society","environment"].includes(value)?value:"all"; renderGrid(); document.querySelector("#latest").scrollIntoView({behavior:"smooth"}); } }
-function updateProgress(){ const visible=!articleView.hidden; $(".reading-progress").style.display=visible?"block":"none"; if(!visible){$("#progressBar").style.width="0";return} const max=document.documentElement.scrollHeight-window.innerHeight; $("#progressBar").style.width=`${max>0?(window.scrollY/max)*100:0}%`; }
+let progressFrame = 0;
+function updateProgress(){
+  if(progressFrame) return;
+  progressFrame = requestAnimationFrame(() => {
+    progressFrame = 0;
+    const visible=!articleView.hidden;
+    $(".reading-progress").style.display=visible?"block":"none";
+    if(!visible){ progressBar.style.transform="scaleX(0)"; return; }
+    const max=document.documentElement.scrollHeight-window.innerHeight;
+    progressBar.style.transform=`scaleX(${max>0?window.scrollY/max:0})`;
+  });
+}
 renderHero(); renderGrid();
-$("#searchInput").addEventListener("input",renderGrid); $("#categoryFilter").addEventListener("change",renderGrid); $("#backButton").addEventListener("click",()=>location.hash="home"); window.addEventListener("hashchange",route); window.addEventListener("scroll",updateProgress);
+$("#searchInput").addEventListener("input",renderGrid); $("#categoryFilter").addEventListener("change",renderGrid); $("#backButton").addEventListener("click",()=>location.hash="home"); window.addEventListener("hashchange",route); window.addEventListener("scroll",updateProgress,{passive:true});
 $("#menuToggle").addEventListener("click",()=>{const nav=$("#mainNav"); const open=nav.classList.toggle("is-open"); $("#menuToggle").setAttribute("aria-expanded",open);}); document.querySelectorAll(".main-nav a").forEach(link=>link.addEventListener("click",()=>$("#mainNav").classList.remove("is-open"))); route();
